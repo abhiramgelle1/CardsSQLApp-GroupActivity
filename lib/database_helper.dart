@@ -1,3 +1,4 @@
+import 'package:group_activity_cards_sql_app/card.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -43,5 +44,20 @@ class DatabaseHelper {
         FOREIGN KEY (folderId) REFERENCES folders(id)
       )
     ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getCards(int folderId) async {
+    final db = await database;
+    return db.query('cards', where: 'folderId = ?', whereArgs: [folderId]);
+  }
+
+  Future<int> addCard(CardModel card) async {
+    final db = await database;
+    return db.insert('cards', card.toMap());
+  }
+
+  Future<int> deleteCard(int id) async {
+    final db = await database;
+    return db.delete('cards', where: 'id = ?', whereArgs: [id]);
   }
 }
