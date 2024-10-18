@@ -206,7 +206,14 @@ class _FolderScreenState extends State<FolderScreen> {
                         folderName: folder['folderName'],
                       ),
                     ),
-                  );
+                  ).then((value) {
+                    if (value == true) {
+                      // Reload folders when returning from card screen (card added or deleted)
+                      setState(() {
+                        foldersWithCardInfo = _fetchFoldersWithCardInfo();
+                      });
+                    }
+                  });
                 },
               );
             },
@@ -218,5 +225,24 @@ class _FolderScreenState extends State<FolderScreen> {
 }
 
 void main() {
-  runApp(MaterialApp(home: FolderScreen()));
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Card Organizer',
+      theme: ThemeData.dark().copyWith(
+        // Use Flutter's dark theme
+        primaryColor: Colors.deepPurple, // You can customize the primary color
+        scaffoldBackgroundColor: Colors.black, // Background color for screens
+        appBarTheme: AppBarTheme(
+          color: Colors.deepPurple, // Dark theme for AppBar
+        ),
+        cardColor: Colors.grey[800], // Dark color for cards
+      ),
+      home: FolderScreen(), // Start with the folder screen
+    );
+  }
 }

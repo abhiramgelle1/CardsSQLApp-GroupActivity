@@ -30,121 +30,196 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _addCard() async {
-    TextEditingController cardNameController = TextEditingController();
+    List<CardModel> existingCards = await _fetchCards();
 
-    // Show a dialog to add a new card
-    showDialog(
+    if (existingCards.length >= 6) {
+      // Show error if limit is reached
+      _showErrorDialog('This folder can only hold 6 cards.');
+      return;
+    }
+
+    // Show a dialog to ask for the card type and shape to be added
+    _showCardSelectionDialog();
+  }
+
+  // Show dialog to select the card type and shape
+  Future<void> _showCardSelectionDialog() async {
+    String? selectedCardType;
+    String? selectedCardShape;
+
+    await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Add Card'),
-          content: TextField(
-            controller: cardNameController,
-            decoration: InputDecoration(hintText: 'Card Name'),
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Add'),
-              onPressed: () async {
-                String cardName = cardNameController.text;
-                if (cardName.isNotEmpty) {
-                  CardModel newCard = CardModel(
-                    name: cardName,
-                    suit: widget.folderName,
-                    imageUrl:
-                        'https://deckofcardsapi.com/static/img/AH.png', // Example URL
-                    folderId: widget.folderId,
-                  );
-                  await dbHelper.addCard(newCard.toMap());
-                  setState(() {
-                    cards = _fetchCards();
-                  });
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
+        return StatefulBuilder(
+          // Use StatefulBuilder to handle dropdown state changes
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Select Card Type and Shape'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    hint: Text('Select card type'),
+                    value: selectedCardType,
+                    items: [
+                      DropdownMenuItem(child: Text('Ace'), value: 'A'),
+                      DropdownMenuItem(child: Text('2'), value: '2'),
+                      DropdownMenuItem(child: Text('3'), value: '3'),
+                      DropdownMenuItem(child: Text('4'), value: '4'),
+                      DropdownMenuItem(child: Text('5'), value: '5'),
+                      DropdownMenuItem(child: Text('6'), value: '6'),
+                      DropdownMenuItem(child: Text('7'), value: '7'),
+                      DropdownMenuItem(child: Text('8'), value: '8'),
+                      DropdownMenuItem(child: Text('9'), value: '9'),
+                      DropdownMenuItem(child: Text('10'), value: '10'),
+                      DropdownMenuItem(child: Text('Jack'), value: 'J'),
+                      DropdownMenuItem(child: Text('Queen'), value: 'Q'),
+                      DropdownMenuItem(child: Text('King'), value: 'K'),
+                    ],
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedCardType =
+                            newValue; // Update the selected value
+                      });
+                    },
+                  ),
+                  DropdownButton<String>(
+                    isExpanded: true,
+                    hint: Text('Select card shape'),
+                    value: selectedCardShape,
+                    items: [
+                      DropdownMenuItem(child: Text('Hearts'), value: 'Hearts'),
+                      DropdownMenuItem(
+                          child: Text('Diamonds'), value: 'Diamonds'),
+                      DropdownMenuItem(child: Text('Spades'), value: 'Spades'),
+                      DropdownMenuItem(child: Text('Clubs'), value: 'Clubs'),
+                    ],
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedCardShape =
+                            newValue; // Update the selected value
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                TextButton(
+                  child: Text('Add'),
+                  onPressed: () {
+                    if (selectedCardType != null && selectedCardShape != null) {
+                      _addSelectedCard(selectedCardType!, selectedCardShape!);
+                      Navigator.of(context).pop();
+                    } else {
+                      _showErrorDialog(
+                          'Please select both card type and shape.');
+                    }
+                  },
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
-  Future<void> _updateCard(CardModel card) async {
-    TextEditingController cardNameController =
-        TextEditingController(text: card.name);
+  // Add the selected card to the folder
+  Future<void> _addSelectedCard(String cardType, String cardShape) async {
+    String cardName;
+    String imageUrl;
 
-    // Show a dialog to update card details
+    // Construct the card name (e.g., "Ace of Hearts")
+    switch (cardType) {
+      case 'A':
+        cardName = 'Ace of $cardShape';
+        break;
+      case 'J':
+        cardName = 'Jack of $cardShape';
+        break;
+      case 'Q':
+        cardName = 'Queen of $cardShape';
+        break;
+      case 'K':
+        cardName = 'King of $cardShape';
+        break;
+      default:
+        cardName = '$cardType of $cardShape';
+    }
+
+    imageUrl = _getCardImageUrl(cardType, cardShape);
+
+    CardModel newCard = CardModel(
+      name: cardName,
+      suit: cardShape, // The selected shape becomes the suit
+      imageUrl: imageUrl,
+      folderId: widget.folderId,
+    );
+
+    await dbHelper.addCard(newCard.toMap());
+    setState(() {
+      cards = _fetchCards();
+    });
+
+    // Notify FolderScreen of the changes and return true
+    Navigator.pop(
+        context, true); // This ensures the card count updates in FolderScreen
+  }
+
+  // Function to get the correct image URL based on the card number/type and shape
+  String _getCardImageUrl(String cardIdentifier, String suit) {
+    String suitLetter;
+    switch (suit) {
+      case 'Hearts':
+        suitLetter = 'H';
+        break;
+      case 'Diamonds':
+        suitLetter = 'D';
+        break;
+      case 'Spades':
+        suitLetter = 'S';
+        break;
+      case 'Clubs':
+        suitLetter = 'C';
+        break;
+      default:
+        suitLetter = 'H'; // Default to Hearts if something goes wrong
+    }
+
+    return 'https://deckofcardsapi.com/static/img/$cardIdentifier$suitLetter.png'; // Generate image URL
+  }
+
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Update Card'),
-          content: TextField(
-            controller: cardNameController,
-            decoration: InputDecoration(hintText: 'New Card Name'),
+      builder: (context) => AlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
           ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Update'),
-              onPressed: () async {
-                String newCardName = cardNameController.text;
-                if (newCardName.isNotEmpty) {
-                  card.name = newCardName; // Now you can update the name
-                  await dbHelper.updateCard(card.toMap());
-                  setState(() {
-                    cards = _fetchCards();
-                  });
-                  Navigator.of(context).pop();
-                }
-              },
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
   Future<void> _deleteCard(int cardId) async {
-    // Show a confirmation dialog before deleting the card
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Delete Card'),
-          content: Text('Are you sure you want to delete this card?'),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Delete'),
-              onPressed: () async {
-                await dbHelper.deleteCard(cardId);
-                setState(() {
-                  cards = _fetchCards();
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
+    await dbHelper.deleteCard(cardId);
+    setState(() {
+      cards = _fetchCards();
+    });
+
+    // Notify FolderScreen of changes
+    Navigator.pop(context, true); // Return true to indicate a change was made
   }
 
   @override
@@ -155,7 +230,7 @@ class _CardScreenState extends State<CardScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.add),
-            onPressed: _addCard,
+            onPressed: _addCard, // Add new card after selecting type and shape
           ),
         ],
       ),
@@ -171,8 +246,9 @@ class _CardScreenState extends State<CardScreen> {
           }
 
           return GridView.builder(
-            gridDelegate:
-                SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+            ),
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
               final card = snapshot.data![index];
@@ -193,13 +269,6 @@ class _CardScreenState extends State<CardScreen> {
                       child: IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
                         onPressed: () => _deleteCard(card.id!),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      child: IconButton(
-                        icon: Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _updateCard(card),
                       ),
                     ),
                   ],
