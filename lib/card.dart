@@ -13,6 +13,7 @@ class CardModel {
     required this.folderId,
   });
 
+  // Convert a CardModel object into a Map object for inserting into SQLite
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -21,5 +22,16 @@ class CardModel {
       'imageUrl': imageUrl,
       'folderId': folderId,
     };
+  }
+
+  // Create a CardModel from a Map object retrieved from SQLite
+  factory CardModel.fromMap(Map<String, dynamic> map) {
+    return CardModel(
+      id: map['id'],
+      name: map['name'],
+      suit: map['suit'],
+      imageUrl: map['imageUrl'],
+      folderId: map['folderId'],
+    );
   }
 }
