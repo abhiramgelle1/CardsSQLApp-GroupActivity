@@ -25,35 +25,108 @@ class DatabaseHelper {
   }
 
   Future _onCreate(Database db, int version) async {
-    // Create folders table (for suits)
+    // Create folders table
     await db.execute('''
-      CREATE TABLE folders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    ''');
+    CREATE TABLE folders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT
+    )
+  ''');
 
     // Create cards table
     await db.execute('''
-      CREATE TABLE cards (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        suit TEXT,
-        imageUrl TEXT,
-        folderId INTEGER,
-        FOREIGN KEY (folderId) REFERENCES folders(id)
-      )
-    ''');
+    CREATE TABLE cards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      suit TEXT,
+      imageUrl TEXT,
+      folderId INTEGER,
+      FOREIGN KEY (folderId) REFERENCES folders(id)
+    )
+  ''');
 
-    // Prepopulate folders (Hearts, Diamonds, Spades, Clubs)
-    await db.insert('folders', {'name': 'Hearts'});
-    await db.insert('folders', {'name': 'Diamonds'});
-    await db.insert('folders', {'name': 'Spades'});
-    await db.insert('folders', {'name': 'Clubs'});
+    // Insert 4 folders
+    int heartsId = await db.insert('folders', {'name': 'Hearts'});
+    int diamondsId = await db.insert('folders', {'name': 'Diamonds'});
+    int spadesId = await db.insert('folders', {'name': 'Spades'});
+    int clubsId = await db.insert('folders', {'name': 'Clubs'});
 
-    // Prepopulate all cards with actual URLs
-    await _prepopulateCards(db);
+    // Insert 3 cards for each folder
+    await db.insert('cards', {
+      'name': 'Ace of Hearts',
+      'suit': 'Hearts',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/AH.png',
+      'folderId': heartsId
+    });
+    await db.insert('cards', {
+      'name': '2 of Hearts',
+      'suit': 'Hearts',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/2H.png',
+      'folderId': heartsId
+    });
+    await db.insert('cards', {
+      'name': '3 of Hearts',
+      'suit': 'Hearts',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/3H.png',
+      'folderId': heartsId
+    });
+
+    await db.insert('cards', {
+      'name': 'Ace of Diamonds',
+      'suit': 'Diamonds',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/AD.png',
+      'folderId': diamondsId
+    });
+    await db.insert('cards', {
+      'name': '2 of Diamonds',
+      'suit': 'Diamonds',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/2D.png',
+      'folderId': diamondsId
+    });
+    await db.insert('cards', {
+      'name': '3 of Diamonds',
+      'suit': 'Diamonds',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/3D.png',
+      'folderId': diamondsId
+    });
+
+    await db.insert('cards', {
+      'name': 'Ace of Spades',
+      'suit': 'Spades',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/AS.png',
+      'folderId': spadesId
+    });
+    await db.insert('cards', {
+      'name': '2 of Spades',
+      'suit': 'Spades',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/2S.png',
+      'folderId': spadesId
+    });
+    await db.insert('cards', {
+      'name': '3 of Spades',
+      'suit': 'Spades',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/3S.png',
+      'folderId': spadesId
+    });
+
+    await db.insert('cards', {
+      'name': 'Ace of Clubs',
+      'suit': 'Clubs',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/AC.png',
+      'folderId': clubsId
+    });
+    await db.insert('cards', {
+      'name': '2 of Clubs',
+      'suit': 'Clubs',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/2C.png',
+      'folderId': clubsId
+    });
+    await db.insert('cards', {
+      'name': '3 of Clubs',
+      'suit': 'Clubs',
+      'imageUrl': 'https://deckofcardsapi.com/static/img/3C.png',
+      'folderId': clubsId
+    });
   }
 
   Future _prepopulateCards(Database db) async {
