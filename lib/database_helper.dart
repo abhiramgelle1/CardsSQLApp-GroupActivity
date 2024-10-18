@@ -405,4 +405,57 @@ class DatabaseHelper {
     ));
     return count != null && count < 6;
   }
+
+  // Get folder ID by name
+  Future<int> getFolderIdByName(String folderName) async {
+    final db = await database;
+    var result = await db.query('folders',
+        where: 'name = ?', whereArgs: [folderName], limit: 1);
+    return result.isNotEmpty ? result.first['id'] as int : -1;
+  }
+
+// Get the number of cards in a folder
+  Future<int> getCardCount(int folderId) async {
+    final db = await database;
+    return Sqflite.firstIntValue(await db.rawQuery(
+            'SELECT COUNT(*) FROM cards WHERE folderId = ?', [folderId])) ??
+        0;
+  }
+
+// Get the first card image in a folder
+  Future<String?> getFirstCardImage(int folderId) async {
+    final db = await database;
+    var result = await db.query('cards',
+        where: 'folderId = ?', whereArgs: [folderId], limit: 1);
+    return result.isNotEmpty ? result.first['imageUrl'] as String? : null;
+  }
+
+  // Add a new folder
+  Future<int> addFolder(String folderName) async {
+    final db = await database;
+    return await db.insert('folders', {'name': folderName});
+  }
+
+// Update an existing folder
+  Future<int> updateFolder(int folderId, String newName) async {
+    final db = await database;
+    return await db.update('folders', {'name': newName},
+        where: 'id = ?', whereArgs: [folderId]);
+  }
+
+// Delete a folder and all its cards
+  Future<void> deleteFolder(int folderId) async {
+    final db = await database;
+    await db.delete('cards',
+        where: 'folderId = ?',
+        whereArgs: [folderId]); // Delete all cards in the folder
+    await db.delete('folders',
+        where: 'id = ?', whereArgs: [folderId]); // Delete the folder
+  }
+
+// Update an existing card
+  Future<int> updateCard(Map<String, dynamic> card) async {
+    final db = await database;
+    return db.update('cards', card, where: 'id = ?', whereArgs: [card['id']]);
+  }
 }
