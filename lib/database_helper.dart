@@ -458,4 +458,10 @@ class DatabaseHelper {
     final db = await database;
     return db.update('cards', card, where: 'id = ?', whereArgs: [card['id']]);
   }
+
+  // Fetch all folders
+  Future<List<Map<String, dynamic>>> getAllFolders() async {
+    final db = await database;
+    return await db.query('folders');
+  }
 }

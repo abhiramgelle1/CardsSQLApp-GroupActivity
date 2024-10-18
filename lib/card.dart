@@ -1,9 +1,9 @@
 class CardModel {
-  final int? id;
-  final String name;
-  final String suit;
-  final String imageUrl;
-  final int folderId;
+  int? id;
+  String name; // Remove the final keyword
+  String suit;
+  String imageUrl;
+  int folderId;
 
   CardModel({
     this.id,
@@ -13,7 +13,7 @@ class CardModel {
     required this.folderId,
   });
 
-  // Convert a CardModel object into a Map object for inserting into SQLite
+  // Convert a CardModel object into a Map
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -24,8 +24,8 @@ class CardModel {
     };
   }
 
-  // Create a CardModel from a Map object retrieved from SQLite
-  factory CardModel.fromMap(Map<String, dynamic> map) {
+  // Create a CardModel from a Map
+  static CardModel fromMap(Map<String, dynamic> map) {
     return CardModel(
       id: map['id'],
       name: map['name'],

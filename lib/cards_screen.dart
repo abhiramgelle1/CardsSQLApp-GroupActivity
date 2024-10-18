@@ -30,61 +30,120 @@ class _CardScreenState extends State<CardScreen> {
   }
 
   Future<void> _addCard() async {
-    if (!(await dbHelper.canAddCard(widget.folderId))) {
-      _showErrorDialog('This folder can only hold 6 cards.');
-      return;
-    }
+    TextEditingController cardNameController = TextEditingController();
 
-    // Determine the next card number
-    List<CardModel> existingCards = await _fetchCards();
-    int nextCardNumber = existingCards.length +
-        1; // Get the next card number (e.g., 3 if 2 cards exist)
-
-    String suit = widget.folderName;
-
-    // Assign the correct card name and image URL based on the next available number
-    CardModel newCard = CardModel(
-      name: '$nextCardNumber of $suit', // e.g., "3 of Spades"
-      suit: suit,
-      imageUrl: _getCardImageUrl(nextCardNumber,
-          suit), // Assign the correct image URL for the card number
-      folderId: widget.folderId,
+    // Show a dialog to add a new card
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Card'),
+          content: TextField(
+            controller: cardNameController,
+            decoration: InputDecoration(hintText: 'Card Name'),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Add'),
+              onPressed: () async {
+                String cardName = cardNameController.text;
+                if (cardName.isNotEmpty) {
+                  CardModel newCard = CardModel(
+                    name: cardName,
+                    suit: widget.folderName,
+                    imageUrl:
+                        'https://deckofcardsapi.com/static/img/AH.png', // Example URL
+                    folderId: widget.folderId,
+                  );
+                  await dbHelper.addCard(newCard.toMap());
+                  setState(() {
+                    cards = _fetchCards();
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
-
-    await dbHelper.addCard(newCard.toMap());
-    setState(() {
-      cards = _fetchCards();
-    });
   }
 
-  // Function to get the correct image URL based on the card number and suit
-  String _getCardImageUrl(int cardNumber, String suit) {
-    // Map the card number to its URL using the suit's first letter
-    String suitLetter =
-        suit[0]; // Get the first letter of the suit (H, D, S, C)
-    return 'https://deckofcardsapi.com/static/img/${cardNumber == 10 ? '0' : cardNumber}$suitLetter.png';
+  Future<void> _updateCard(CardModel card) async {
+    TextEditingController cardNameController =
+        TextEditingController(text: card.name);
+
+    // Show a dialog to update card details
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Update Card'),
+          content: TextField(
+            controller: cardNameController,
+            decoration: InputDecoration(hintText: 'New Card Name'),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Update'),
+              onPressed: () async {
+                String newCardName = cardNameController.text;
+                if (newCardName.isNotEmpty) {
+                  card.name = newCardName; // Now you can update the name
+                  await dbHelper.updateCard(card.toMap());
+                  setState(() {
+                    cards = _fetchCards();
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _deleteCard(int cardId) async {
-    await dbHelper.deleteCard(cardId);
-    setState(() {
-      cards = _fetchCards();
-    });
-  }
-
-  void _showErrorDialog(String message) {
+    // Show a confirmation dialog before deleting the card
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
-          ),
-        ],
-      ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Card'),
+          content: Text('Are you sure you want to delete this card?'),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Delete'),
+              onPressed: () async {
+                await dbHelper.deleteCard(cardId);
+                setState(() {
+                  cards = _fetchCards();
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -112,9 +171,8 @@ class _CardScreenState extends State<CardScreen> {
           }
 
           return GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-            ),
+            gridDelegate:
+                SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
             itemCount: snapshot.data!.length,
             itemBuilder: (context, index) {
               final card = snapshot.data![index];
@@ -124,17 +182,8 @@ class _CardScreenState extends State<CardScreen> {
                   children: [
                     Column(
                       children: [
-                        Image.network(
-                          card.imageUrl,
-                          height: 100,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.network(
-                              'https://via.placeholder.com/150', // Placeholder if the image fails to load
-                              height: 100,
-                            );
-                          },
-                        ),
+                        Image.network(card.imageUrl,
+                            height: 100, fit: BoxFit.cover),
                         Text(card.name),
                         Text(card.suit),
                       ],
@@ -144,6 +193,13 @@ class _CardScreenState extends State<CardScreen> {
                       child: IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
                         onPressed: () => _deleteCard(card.id!),
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      child: IconButton(
+                        icon: Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () => _updateCard(card),
                       ),
                     ),
                   ],
