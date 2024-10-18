@@ -42,7 +42,6 @@ class _CardScreenState extends State<CardScreen> {
     _showCardSelectionDialog();
   }
 
-  // Show dialog to select the card type and shape
   Future<void> _showCardSelectionDialog() async {
     String? selectedCardType;
     String? selectedCardShape;
@@ -79,8 +78,7 @@ class _CardScreenState extends State<CardScreen> {
                     ],
                     onChanged: (String? newValue) {
                       setState(() {
-                        selectedCardType =
-                            newValue; // Update the selected value
+                        selectedCardType = newValue;
                       });
                     },
                   ),
@@ -97,8 +95,7 @@ class _CardScreenState extends State<CardScreen> {
                     ],
                     onChanged: (String? newValue) {
                       setState(() {
-                        selectedCardShape =
-                            newValue; // Update the selected value
+                        selectedCardShape = newValue;
                       });
                     },
                   ),
@@ -164,16 +161,23 @@ class _CardScreenState extends State<CardScreen> {
     );
 
     await dbHelper.addCard(newCard.toMap());
-    setState(() {
-      cards = _fetchCards();
-    });
 
-    // Notify FolderScreen of the changes and return true
-    Navigator.pop(
-        context, true); // This ensures the card count updates in FolderScreen
+    // Refresh the card list without leaving the current screen
+    setState(() {
+      cards = _fetchCards(); // Fetch the updated cards list to refresh the UI
+    });
   }
 
-  // Function to get the correct image URL based on the card number/type and shape
+  Future<void> _deleteCard(int cardId) async {
+    await dbHelper.deleteCard(cardId);
+
+    // Refresh the card list after deletion
+    setState(() {
+      cards = _fetchCards(); // Fetch the updated cards list to refresh the UI
+    });
+  }
+
+  // Function to get the correct image URL based on the card number/type and suit
   String _getCardImageUrl(String cardIdentifier, String suit) {
     String suitLetter;
     switch (suit) {
@@ -210,16 +214,6 @@ class _CardScreenState extends State<CardScreen> {
         ],
       ),
     );
-  }
-
-  Future<void> _deleteCard(int cardId) async {
-    await dbHelper.deleteCard(cardId);
-    setState(() {
-      cards = _fetchCards();
-    });
-
-    // Notify FolderScreen of changes
-    Navigator.pop(context, true); // Return true to indicate a change was made
   }
 
   @override
